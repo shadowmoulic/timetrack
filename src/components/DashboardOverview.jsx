@@ -1,12 +1,11 @@
 import React from 'react';
-import { Award, Zap, AlertCircle, Clock, PieChart, TrendingUp } from 'lucide-react';
+import { Award, Zap, AlertCircle, Clock, PieChart, TrendingUp, Sparkles } from 'lucide-react';
 
 export default function DashboardOverview({ analytics }) {
   const {
     totalHours = 0,
     productiveHours = 0,
     unproductiveHours = 0,
-    neutralHours = 0,
     productivityScore = 0,
     categoryBreakdown = []
   } = analytics || {};
@@ -15,131 +14,122 @@ export default function DashboardOverview({ analytics }) {
     ? [...categoryBreakdown].sort((a, b) => b.hours - a.hours)[0] 
     : null;
 
-  // Score color gradient
-  const getScoreColor = (score) => {
-    if (score >= 70) return '#10b981';
-    if (score >= 50) return '#f59e0b';
-    return '#ef4444';
-  };
-
   return (
-    <div className="overview-grid">
-      {/* Productivity Score */}
-      <div className="metric-card score-card">
-        <div className="metric-header">
-          <span className="metric-title">Productivity Score</span>
-          <div className="metric-icon-wrap" style={{ color: getScoreColor(productivityScore) }}>
-            <Award size={20} />
-          </div>
-        </div>
-        <div className="metric-body">
-          <span className="metric-value" style={{ color: getScoreColor(productivityScore) }}>
-            {productivityScore}%
-          </span>
-          <span className="metric-unit">Score</span>
-        </div>
-        <div className="metric-footer">
-          <TrendingUp size={14} color={getScoreColor(productivityScore)} />
-          <span>
-            {productivityScore >= 70 
-              ? 'High focus efficiency' 
-              : (productivityScore >= 50 ? 'Moderate output balance' : 'Needs focus optimization')}
-          </span>
-        </div>
-        <div className="progress-bar-bg">
-          <div 
-            className="progress-bar-fill" 
-            style={{ 
-              width: `${productivityScore}%`, 
-              backgroundColor: getScoreColor(productivityScore) 
-            }} 
-          />
-        </div>
-      </div>
-
-      {/* Productive Time */}
-      <div className="metric-card">
-        <div className="metric-header">
-          <span className="metric-title">Productive Hours</span>
-          <div className="metric-icon-wrap" style={{ color: '#10b981' }}>
-            <Zap size={20} />
-          </div>
-        </div>
-        <div className="metric-body">
-          <span className="metric-value" style={{ color: '#10b981' }}>
-            {productiveHours}
-          </span>
-          <span className="metric-unit">hrs</span>
-        </div>
-        <div className="metric-footer">
-          <span>Deep Work, Coding, Meetings & Learning</span>
-        </div>
-        <div className="progress-bar-bg">
-          <div 
-            className="progress-bar-fill" 
-            style={{ 
-              width: `${totalHours > 0 ? (productiveHours / totalHours) * 100 : 0}%`, 
-              backgroundColor: '#10b981' 
-            }} 
-          />
-        </div>
-      </div>
-
-      {/* Unproductive Time */}
-      <div className="metric-card unproductive-card">
-        <div className="metric-header">
-          <span className="metric-title">Unproductive / Distraction</span>
-          <div className="metric-icon-wrap" style={{ color: '#ef4444' }}>
-            <AlertCircle size={20} />
-          </div>
-        </div>
-        <div className="metric-body">
-          <span className="metric-value" style={{ color: '#ef4444' }}>
-            {unproductiveHours}
-          </span>
-          <span className="metric-unit">hrs</span>
-        </div>
-        <div className="metric-footer">
-          <span>Social Media, Gaming, Streaming</span>
-        </div>
-        <div className="progress-bar-bg">
-          <div 
-            className="progress-bar-fill" 
-            style={{ 
-              width: `${totalHours > 0 ? (unproductiveHours / totalHours) * 100 : 0}%`, 
-              backgroundColor: '#ef4444' 
-            }} 
-          />
-        </div>
-      </div>
-
-      {/* Total Tracked & Top Category */}
-      <div className="metric-card">
-        <div className="metric-header">
-          <span className="metric-title">Total Tracked</span>
-          <div className="metric-icon-wrap" style={{ color: '#6366f1' }}>
-            <Clock size={20} />
-          </div>
-        </div>
-        <div className="metric-body">
-          <span className="metric-value">{totalHours}</span>
-          <span className="metric-unit">hrs</span>
-        </div>
-        <div className="metric-footer" style={{ justifyContent: 'space-between' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <PieChart size={14} /> Top: {topCategory ? topCategory.name : 'N/A'}
-          </span>
-          {topCategory && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: topCategory.color }}>
-              {Math.round(topCategory.hours)} hrs
+    <div className="space-y-6">
+      {/* Row 1: Hero Banner & High Impact Productivity Gauge (12 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Hero Score Card (7 Columns) */}
+        <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Productivity Score</span>
+            </div>
+            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Output Efficiency
             </span>
-          )}
+          </div>
+
+          <div className="flex items-baseline space-x-4">
+            <span className="font-mono text-6xl font-extrabold text-slate-900 tracking-tight">
+              {productivityScore}%
+            </span>
+            <div className="text-sm font-semibold text-slate-500">
+              {productivityScore >= 70 
+                ? 'High focus efficiency maintained' 
+                : 'Balanced work & break distribution'}
+            </div>
+          </div>
+
+          {/* Minimalist Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-semibold text-slate-400">
+              <span>0% Low</span>
+              <span>Target: 75%+</span>
+              <span>100% Peak</span>
+            </div>
+            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${productivityScore}%` }}
+              />
+            </div>
+          </div>
         </div>
-        <div className="progress-bar-bg">
-          <div 
-            className="progress-bar-fill" 
-            style={{ width: '100%', backgroundColor: '#6366f1' }} 
-          />
+
+        {/* Right Focus Ratio Card (5 Columns) */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Focus vs Distraction Ratio</span>
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl space-y-1">
+              <div className="text-xs font-bold text-emerald-700 flex items-center space-x-1">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Deep Work</span>
+              </div>
+              <div className="font-mono text-2xl font-extrabold text-slate-900">{productiveHours}h</div>
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl space-y-1">
+              <div className="text-xs font-bold text-rose-600 flex items-center space-x-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Distractions</span>
+              </div>
+              <div className="font-mono text-2xl font-extrabold text-slate-900">{unproductiveHours}h</div>
+            </div>
+          </div>
+
+          <div className="text-xs font-medium text-slate-400">
+            {totalHours} total hours tracked across current active filter range.
+          </div>
+        </div>
+
+      </div>
+
+      {/* Row 2: 4 Metric Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Total Tracked</span>
+            <Clock className="w-4 h-4 text-slate-600" />
+          </div>
+          <div className="font-mono text-3xl font-extrabold text-slate-900">{totalHours}h</div>
+          <div className="text-[11px] text-slate-400 font-medium">Logged time duration</div>
+        </div>
+
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Productive</span>
+            <Zap className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div className="font-mono text-3xl font-extrabold text-indigo-600">{productiveHours}h</div>
+          <div className="text-[11px] text-slate-400 font-medium">Coding, Dev & Learning</div>
+        </div>
+
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Unproductive</span>
+            <AlertCircle className="w-4 h-4 text-slate-400" />
+          </div>
+          <div className="font-mono text-3xl font-extrabold text-slate-900">{unproductiveHours}h</div>
+          <div className="text-[11px] text-slate-400 font-medium">Social media & streaming</div>
+        </div>
+
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Top Category</span>
+            <PieChart className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div className="text-lg font-extrabold text-slate-900 truncate">
+            {topCategory ? topCategory.name : 'N/A'}
+          </div>
+          <div className="text-[11px] text-slate-400 font-medium">
+            {topCategory ? `${Math.round(topCategory.hours)} hrs total` : 'No events'}
+          </div>
         </div>
       </div>
     </div>

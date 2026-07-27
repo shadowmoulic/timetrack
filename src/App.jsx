@@ -2,20 +2,24 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import AnalyticsCharts from './components/AnalyticsCharts';
+import RecentActivityList from './components/RecentActivityList';
 import EventsList from './components/EventsList';
+import FocusPage from './components/FocusPage';
+import AnalyticsPage from './components/AnalyticsPage';
+import CommandPaletteModal from './components/CommandPaletteModal';
 import RuleManagerModal from './components/RuleManagerModal';
 import ManualEntryModal from './components/ManualEntryModal';
 import SetupGuideModal from './components/SetupGuideModal';
 import SettingsModal from './components/SettingsModal';
 
-import { Calendar, Plus, RefreshCw } from 'lucide-react';
+import { Calendar, Plus, RefreshCw, Sparkles, Command } from 'lucide-react';
 import { DEFAULT_CLIENT_ID, DEFAULT_CATEGORIES, DEFAULT_RULES } from './config';
 import { generateMockEvents } from './services/mockData';
 import { calculateAnalytics } from './services/categorizer';
 import { requestGoogleAccessToken, fetchGoogleCalendarEvents } from './services/googleCalendar';
 
 export default function App() {
-  // Navigation Tabs: 'dashboard', 'charts', 'events', 'rules'
+  // Navigation Pages: 'dashboard', 'focus', 'analytics', 'events'
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Mode: 'demo' or 'live'
@@ -29,14 +33,14 @@ export default function App() {
     return localStorage.getItem('timetrack_client_id') || DEFAULT_CLIENT_ID;
   });
 
-  // Auth & Token State
+  // Auth State
   const [accessToken, setAccessToken] = useState(() => {
     return localStorage.getItem('timetrack_access_token') || null;
   });
   const [userEmail, setUserEmail] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Custom Categories & Rules State
+  // Custom Categories & Rules
   const [categories, setCategories] = useState(() => {
     const saved = localStorage.getItem('timetrack_categories');
     return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
@@ -65,6 +69,7 @@ export default function App() {
   });
 
   // Modals Visibility
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -80,6 +85,18 @@ export default function App() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   };
+
+  // Keyboard Shortcuts Listener
+  useEffect(() => {
+    const handleGlobalShortcuts = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+  }, []);
 
   // Sync State with LocalStorage
   useEffect(() => {
@@ -106,7 +123,6 @@ export default function App() {
     localStorage.setItem('timetrack_google_events', JSON.stringify(googleEvents));
   }, [googleEvents]);
 
-  // Compute Start & End Date depending on selection
   const { startDate, endDate } = useMemo(() => {
     const end = new Date();
     const start = new Date();
@@ -123,7 +139,6 @@ export default function App() {
     return { startDate: start, endDate: end };
   }, [dateRange]);
 
-  // Handle Google Calendar Fetch
   const handleFetchGoogleCalendar = async (token = accessToken) => {
     if (!token) return;
     setIsLoading(true);
@@ -131,7 +146,7 @@ export default function App() {
       const fetchedEvents = await fetchGoogleCalendarEvents(token, startDate, endDate);
       setGoogleEvents(fetchedEvents);
       setMode('live');
-      showToast(`Successfully synced ${fetchedEvents.length} events from Google Calendar!`, 'success');
+      showToast(`Synced ${fetchedEvents.length} Google Calendar events!`, 'success');
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Failed to fetch Google Calendar events.', 'error');
@@ -140,7 +155,6 @@ export default function App() {
     }
   };
 
-  // Handle Google OAuth Sign In
   const handleGoogleSignIn = () => {
     requestGoogleAccessToken(
       clientId,
@@ -163,7 +177,6 @@ export default function App() {
     showToast('Signed out of Google account.', 'info');
   };
 
-  // Combine Active Events according to Mode
   const activeRawEvents = useMemo(() => {
     if (mode === 'demo') {
       const mockEvents = generateMockEvents();
@@ -180,10 +193,27 @@ export default function App() {
     }
   }, [mode, startDate, endDate, manualEvents, googleEvents]);
 
-  // Compute Full Analytics
   const analytics = useMemo(() => {
     return calculateAnalytics(activeRawEvents, rules, categories, categoryOverrides);
   }, [activeRawEvents, rules, categories, categoryOverrides]);
+
+  // Event Quick Actions
+  const handleDuplicateEvent = (evt) => {
+    const duplicated = {
+      ...evt,
+      id: `manual-dup-${Date.now()}`,
+      summary: `${evt.summary} (Copy)`,
+      source: 'manual'
+    };
+    setManualEvents(prev => [duplicated, ...prev]);
+    showToast(`Duplicated "${evt.summary}"`, 'success');
+  };
+
+  const handleDeleteEvent = (evtId) => {
+    setManualEvents(prev => prev.filter(e => e.id !== evtId));
+    setGoogleEvents(prev => prev.filter(e => e.id !== evtId));
+    showToast('Event removed.', 'info');
+  };
 
   const handleAddRule = (newRule) => {
     setRules(prev => [newRule, ...prev]);
@@ -205,7 +235,7 @@ export default function App() {
       ...prev,
       [eventId]: categoryId
     }));
-    showToast('Event category updated manually.', 'success');
+    showToast('Event category updated.', 'success');
   };
 
   const handleAddManualEvent = (eventData) => {
@@ -275,7 +305,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-layout">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
@@ -294,22 +324,40 @@ export default function App() {
         onGoogleSignOut={handleGoogleSignOut}
         onOpenGuide={() => setShowGuideModal(true)}
         onOpenSettings={() => setShowSettingsModal(true)}
+        onOpenCommandPalette={() => setShowCommandPalette(true)}
       />
 
-      {/* Main Workspace Area */}
-      <main className="main-workspace">
+      {/* Main Content Workspace */}
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50">
         {/* Top Control Bar */}
-        <header className="top-bar">
-          <h1 className="top-bar-title">Reports & Productivity</h1>
+        <header className="h-16 px-8 bg-white border-b border-slate-200/80 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-lg font-bold text-slate-900 capitalize">
+              {activeTab === 'dashboard' && 'Dashboard Overview'}
+              {activeTab === 'focus' && 'Focus Workspace & Pomodoro'}
+              {activeTab === 'analytics' && 'Analytics & Deep Dive'}
+              {activeTab === 'events' && 'Daily Agenda Timeline'}
+            </h1>
+          </div>
 
-          <div className="top-bar-controls">
+          <div className="flex items-center space-x-3">
+            {/* Command Palette Trigger Pill */}
+            <button 
+              onClick={() => setShowCommandPalette(true)}
+              className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 text-slate-600 rounded-xl text-xs font-semibold transition-colors"
+            >
+              <Command className="w-3.5 h-3.5 text-slate-400" />
+              <span>Command Palette</span>
+              <kbd className="font-mono text-[10px] bg-white border border-slate-200 px-1 py-0.5 rounded text-slate-400">⌘K</kbd>
+            </button>
+
             {/* Date Range Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-light)', padding: '4px 10px', borderRadius: '6px' }}>
-              <Calendar size={14} className="text-secondary" />
+            <div className="flex items-center space-x-2 border border-slate-200/80 bg-white px-3 py-1.5 rounded-xl text-xs font-semibold">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <select 
                 value={dateRange} 
                 onChange={(e) => setDateRange(e.target.value)}
-                style={{ border: 'none', background: 'transparent', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', outline: 'none' }}
+                className="bg-transparent border-none outline-none font-semibold text-slate-800 cursor-pointer"
               >
                 <option value="today">Today</option>
                 <option value="7days">Past 7 Days</option>
@@ -318,59 +366,51 @@ export default function App() {
               </select>
             </div>
 
-            {/* Sync Button */}
-            <button className="btn btn-secondary" onClick={() => handleFetchGoogleCalendar()} disabled={isLoading}>
-              <RefreshCw size={14} className={isLoading ? 'spin' : ''} /> Sync Google
+            {/* Google Sync Button */}
+            <button 
+              onClick={() => handleFetchGoogleCalendar()} 
+              disabled={isLoading}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-slate-200/80 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-semibold transition-all shadow-2xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Sync</span>
             </button>
 
-            {/* Add Manual Event Button */}
-            <button className="btn btn-primary" onClick={() => setShowManualModal(true)}>
-              <Plus size={14} /> New Time Log
+            {/* Add Log Button */}
+            <button 
+              onClick={() => setShowManualModal(true)}
+              className="flex items-center space-x-1.5 px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-all shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Entry</span>
             </button>
           </div>
         </header>
 
-        {/* View Switcher Tabs */}
-        <div className="tabs-bar">
-          <button 
-            className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            Dashboard
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'charts' ? 'active' : ''}`}
-            onClick={() => setActiveTab('charts')}
-          >
-            Analytics & Charts
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
-            onClick={() => setActiveTab('events')}
-          >
-            Daily Agenda Events
-          </button>
-        </div>
-
-        {/* View Content */}
-        <div className="content-viewport">
+        {/* View Content Area */}
+        <div className="p-8 max-w-7xl w-full mx-auto flex-1">
           {activeTab === 'dashboard' && (
-            <>
+            <div className="space-y-8">
               <DashboardOverview analytics={analytics} />
               <AnalyticsCharts analytics={analytics} />
-              <EventsList
+              
+              {/* GitHub-style Compact Activity Feed */}
+              <RecentActivityList 
                 processedEvents={analytics.processedEvents}
                 categories={categories}
                 onOverrideCategory={handleOverrideCategory}
+                onDuplicateEvent={handleDuplicateEvent}
+                onDeleteEvent={handleDeleteEvent}
               />
-            </>
+            </div>
           )}
 
-          {activeTab === 'charts' && (
-            <>
-              <DashboardOverview analytics={analytics} />
-              <AnalyticsCharts analytics={analytics} />
-            </>
+          {activeTab === 'focus' && (
+            <FocusPage onToast={showToast} />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsPage analytics={analytics} />
           )}
 
           {activeTab === 'events' && (
@@ -383,7 +423,19 @@ export default function App() {
         </div>
       </main>
 
-      {/* Modals */}
+      {/* Modals & Command Palette */}
+      <CommandPaletteModal
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNavigate={(tab) => setActiveTab(tab)}
+        onOpenManual={() => setShowManualModal(true)}
+        onSyncGoogle={() => handleFetchGoogleCalendar()}
+        onToggleMode={() => setMode(mode === 'demo' ? 'live' : 'demo')}
+        mode={mode}
+        onOpenRules={() => setShowRulesModal(true)}
+        onOpenSettings={() => setShowSettingsModal(true)}
+      />
+
       <RuleManagerModal
         isOpen={showRulesModal}
         onClose={() => setShowRulesModal(false)}
@@ -419,10 +471,15 @@ export default function App() {
         onToast={showToast}
       />
 
-      {/* Toast Notification Container */}
-      <div className="toast-container">
+      {/* Toast Notifications */}
+      <div className="fixed bottom-6 right-6 z-[3000] flex flex-col space-y-2">
         {toasts.map(t => (
-          <div key={t.id} className={`toast ${t.type}`}>
+          <div 
+            key={t.id} 
+            className={`px-4 py-3 bg-slate-900 text-white rounded-xl shadow-xl text-xs font-semibold flex items-center space-x-2 animate-in slide-in-from-bottom-2 duration-200 border border-slate-800 ${
+              t.type === 'success' ? 'border-l-4 border-l-emerald-500' : (t.type === 'error' ? 'border-l-4 border-l-rose-500' : 'border-l-4 border-l-indigo-500')
+            }`}
+          >
             <span>{t.message}</span>
           </div>
         ))}
