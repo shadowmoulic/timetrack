@@ -53,8 +53,8 @@ export default function AnalyticsCharts({ analytics }) {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ background: '#090d16', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px' }}
-                    itemStyle={{ color: '#fff' }}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '0.85rem' }}
+                    itemStyle={{ color: '#0f172a' }}
                     formatter={(val) => [`${val} hours`, 'Duration']}
                   />
                 </PieChart>
@@ -107,7 +107,8 @@ export default function AnalyticsCharts({ analytics }) {
                 <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} />
                 <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ background: '#090d16', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px' }}
+                  contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '0.85rem' }}
+                  itemStyle={{ color: '#0f172a' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px', fontSize: '0.8rem' }} />
                 <Bar dataKey="Productive" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
