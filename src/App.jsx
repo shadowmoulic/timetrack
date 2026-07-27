@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import Header from './components/Header';
+import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import AnalyticsCharts from './components/AnalyticsCharts';
 import EventsList from './components/EventsList';
@@ -8,12 +8,16 @@ import ManualEntryModal from './components/ManualEntryModal';
 import SetupGuideModal from './components/SetupGuideModal';
 import SettingsModal from './components/SettingsModal';
 
+import { Calendar, Plus, RefreshCw } from 'lucide-react';
 import { DEFAULT_CLIENT_ID, DEFAULT_CATEGORIES, DEFAULT_RULES } from './config';
 import { generateMockEvents } from './services/mockData';
 import { calculateAnalytics } from './services/categorizer';
 import { requestGoogleAccessToken, fetchGoogleCalendarEvents } from './services/googleCalendar';
 
 export default function App() {
+  // Navigation Tabs: 'dashboard', 'charts', 'events', 'rules'
+  const [activeTab, setActiveTab] = useState('dashboard');
+
   // Mode: 'demo' or 'live'
   const [mode, setMode] = useState('demo');
   
@@ -43,7 +47,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : DEFAULT_RULES;
   });
 
-  // Category Manual Overrides ({ [eventId]: categoryId })
+  // Category Manual Overrides
   const [categoryOverrides, setCategoryOverrides] = useState(() => {
     const saved = localStorage.getItem('timetrack_overrides');
     return saved ? JSON.parse(saved) : {};
@@ -163,13 +167,11 @@ export default function App() {
   const activeRawEvents = useMemo(() => {
     if (mode === 'demo') {
       const mockEvents = generateMockEvents();
-      // Filter mock events by date range
       return [...mockEvents, ...manualEvents].filter(evt => {
         const evtDate = new Date(evt.start?.dateTime || evt.start?.date || evt.start);
         return evtDate >= startDate && evtDate <= endDate;
       });
     } else {
-      // Live mode combines Google Events + Manual Entries
       const combined = [...googleEvents, ...manualEvents];
       return combined.filter(evt => {
         const evtDate = new Date(evt.start?.dateTime || evt.start?.date || evt.start);
@@ -178,12 +180,11 @@ export default function App() {
     }
   }, [mode, startDate, endDate, manualEvents, googleEvents]);
 
-  // Compute Full Analytics using current rules and categories
+  // Compute Full Analytics
   const analytics = useMemo(() => {
     return calculateAnalytics(activeRawEvents, rules, categories, categoryOverrides);
   }, [activeRawEvents, rules, categories, categoryOverrides]);
 
-  // Handlers for Rule & Category Editing
   const handleAddRule = (newRule) => {
     setRules(prev => [newRule, ...prev]);
     showToast(`Added keyword rule "${newRule.keyword}"`, 'success');
@@ -212,14 +213,12 @@ export default function App() {
     showToast('Manual time entry added!', 'success');
   };
 
-  // CSV Data Importer
   const handleImportCSV = (csvContent) => {
     try {
       const lines = csvContent.split('\n').filter(line => line.trim());
       if (lines.length < 2) return;
 
       const newEvents = [];
-      // CSV Headers expected: Title, Date, StartTime, EndTime, Description
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
         if (cols.length >= 2) {
@@ -245,11 +244,10 @@ export default function App() {
       setManualEvents(prev => [...newEvents, ...prev]);
       showToast(`Imported ${newEvents.length} events from CSV!`, 'success');
     } catch (err) {
-      showToast('Error parsing CSV file. Please format as: Title, Date, StartTime, EndTime', 'error');
+      showToast('Error parsing CSV file.', 'error');
     }
   };
 
-  // CSV Data Exporter
   const handleExportCSV = () => {
     const events = analytics.processedEvents || [];
     let csv = "Title,Date,DurationHours,Category,ProductivityType,MatchedKeyword\n";
@@ -277,39 +275,115 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-      {/* Navbar Header */}
-      <Header
-        dateRange={dateRange}
-        setDateRange={setDateRange}
+    <div className="app-layout">
+      {/* Sidebar Navigation */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={(tab) => {
+          if (tab === 'rules') {
+            setShowRulesModal(true);
+          } else {
+            setActiveTab(tab);
+          }
+        }}
         mode={mode}
         setMode={setMode}
         isAuthenticated={!!accessToken}
         userEmail={userEmail}
         onGoogleSignIn={handleGoogleSignIn}
         onGoogleSignOut={handleGoogleSignOut}
-        onOpenRules={() => setShowRulesModal(true)}
-        onOpenManualEntry={() => setShowManualModal(true)}
         onOpenGuide={() => setShowGuideModal(true)}
         onOpenSettings={() => setShowSettingsModal(true)}
-        onRefresh={() => handleFetchGoogleCalendar()}
-        isLoading={isLoading}
       />
 
-      {/* Overview Metric Cards */}
-      <DashboardOverview analytics={analytics} />
+      {/* Main Workspace Area */}
+      <main className="main-workspace">
+        {/* Top Control Bar */}
+        <header className="top-bar">
+          <h1 className="top-bar-title">Reports & Productivity</h1>
 
-      {/* Analytics Charts */}
-      <AnalyticsCharts analytics={analytics} />
+          <div className="top-bar-controls">
+            {/* Date Range Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-light)', padding: '4px 10px', borderRadius: '6px' }}>
+              <Calendar size={14} className="text-secondary" />
+              <select 
+                value={dateRange} 
+                onChange={(e) => setDateRange(e.target.value)}
+                style={{ border: 'none', background: 'transparent', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="today">Today</option>
+                <option value="7days">Past 7 Days</option>
+                <option value="14days">Past 14 Days</option>
+                <option value="30days">Past 30 Days</option>
+              </select>
+            </div>
 
-      {/* Interactive Events List */}
-      <EventsList
-        processedEvents={analytics.processedEvents}
-        categories={categories}
-        onOverrideCategory={handleOverrideCategory}
-      />
+            {/* Sync Button */}
+            <button className="btn btn-secondary" onClick={() => handleFetchGoogleCalendar()} disabled={isLoading}>
+              <RefreshCw size={14} className={isLoading ? 'spin' : ''} /> Sync Google
+            </button>
 
-      {/* Rule Manager Modal */}
+            {/* Add Manual Event Button */}
+            <button className="btn btn-primary" onClick={() => setShowManualModal(true)}>
+              <Plus size={14} /> New Time Log
+            </button>
+          </div>
+        </header>
+
+        {/* View Switcher Tabs */}
+        <div className="tabs-bar">
+          <button 
+            className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            Dashboard
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'charts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('charts')}
+          >
+            Analytics & Charts
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
+            onClick={() => setActiveTab('events')}
+          >
+            Daily Agenda Events
+          </button>
+        </div>
+
+        {/* View Content */}
+        <div className="content-viewport">
+          {activeTab === 'dashboard' && (
+            <>
+              <DashboardOverview analytics={analytics} />
+              <AnalyticsCharts analytics={analytics} />
+              <EventsList
+                processedEvents={analytics.processedEvents}
+                categories={categories}
+                onOverrideCategory={handleOverrideCategory}
+              />
+            </>
+          )}
+
+          {activeTab === 'charts' && (
+            <>
+              <DashboardOverview analytics={analytics} />
+              <AnalyticsCharts analytics={analytics} />
+            </>
+          )}
+
+          {activeTab === 'events' && (
+            <EventsList
+              processedEvents={analytics.processedEvents}
+              categories={categories}
+              onOverrideCategory={handleOverrideCategory}
+            />
+          )}
+        </div>
+      </main>
+
+      {/* Modals */}
       <RuleManagerModal
         isOpen={showRulesModal}
         onClose={() => setShowRulesModal(false)}
@@ -320,7 +394,6 @@ export default function App() {
         onAddCategory={handleAddCategory}
       />
 
-      {/* Manual Time Logging & CSV Modal */}
       <ManualEntryModal
         isOpen={showManualModal}
         onClose={() => setShowManualModal(false)}
@@ -330,7 +403,6 @@ export default function App() {
         onExportCSV={handleExportCSV}
       />
 
-      {/* Google Cloud Setup Guide */}
       <SetupGuideModal
         isOpen={showGuideModal}
         onClose={() => setShowGuideModal(false)}
@@ -338,7 +410,6 @@ export default function App() {
         onToast={showToast}
       />
 
-      {/* Settings Modal */}
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
