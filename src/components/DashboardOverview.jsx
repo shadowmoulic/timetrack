@@ -3,7 +3,7 @@ import { Award, Zap, AlertCircle, Clock, PieChart, TrendingUp, Sparkles } from '
 import ScratchpadWidget from './ScratchpadWidget';
 import QuickTimeslotWidget from './QuickTimeslotWidget';
 
-export default function DashboardOverview({ analytics, onAddTimeslot, categories }) {
+export default function DashboardOverview({ analytics, onAddTimeslot, categories, dateRange = '14days' }) {
   const {
     totalHours = 0,
     productiveHours = 0,
@@ -15,6 +15,32 @@ export default function DashboardOverview({ analytics, onAddTimeslot, categories
   const topCategory = categoryBreakdown.length > 0 
     ? [...categoryBreakdown].sort((a, b) => b.hours - a.hours)[0] 
     : null;
+
+  // Calculate Total Available Hours Capacity for Selected Filter Range
+  let capacityHours = 336; // default 14 days
+  let periodLabel = "14 Days";
+
+  if (dateRange === 'today') {
+    capacityHours = 24;
+    periodLabel = "Day";
+  } else if (dateRange === '3days') {
+    capacityHours = 72;
+    periodLabel = "3 Days";
+  } else if (dateRange === '7days') {
+    capacityHours = 168; // 168 hours in a week!
+    periodLabel = "Week";
+  } else if (dateRange === '14days') {
+    capacityHours = 336;
+    periodLabel = "14 Days";
+  } else if (dateRange === '30days') {
+    capacityHours = 720;
+    periodLabel = "Month";
+  } else if (dateRange === '6months') {
+    capacityHours = 4320; // 180 days * 24h
+    periodLabel = "6 Months";
+  }
+
+  const trackedRatioPercent = capacityHours > 0 ? Math.round((totalHours / capacityHours) * 100) : 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -85,8 +111,8 @@ export default function DashboardOverview({ analytics, onAddTimeslot, categories
             </div>
           </div>
 
-          <div className="text-[11px] sm:text-xs font-medium text-slate-400">
-            {totalHours} total hours tracked across current active filter range.
+          <div className="text-[11px] sm:text-xs font-medium text-slate-500">
+            <strong>{totalHours}h / {capacityHours}h</strong> total capacity tracked ({trackedRatioPercent}% of {periodLabel})
           </div>
         </div>
 
@@ -102,11 +128,13 @@ export default function DashboardOverview({ analytics, onAddTimeslot, categories
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">Total Tracked</span>
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">Total Tracked Ratio</span>
             <Clock className="w-4 h-4 text-slate-600" />
           </div>
-          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-slate-900">{totalHours}h</div>
-          <div className="text-[11px] text-slate-400 font-medium">Logged time duration</div>
+          <div className="font-mono text-xl sm:text-2xl font-extrabold text-slate-900">
+            {totalHours}h <span className="text-xs font-normal text-slate-400">/ {capacityHours}h</span>
+          </div>
+          <div className="text-[11px] text-slate-400 font-medium">{trackedRatioPercent}% of {periodLabel} tracked</div>
         </div>
 
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-2">

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
-  Target, 
+  Calendar as CalendarIcon, 
   BarChart3, 
-  Calendar, 
   Tag, 
   Settings, 
   HelpCircle, 
@@ -12,9 +11,11 @@ import {
   LogIn, 
   User, 
   Sparkles,
+  Bot,
   ChevronDown,
   Menu,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -39,7 +40,7 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile Top Header (Only visible on screens smaller than md / 768px) */}
+      {/* Mobile Top Header */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-40 w-full">
         <div className="flex items-center space-x-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
@@ -52,15 +53,12 @@ export default function Sidebar({
           <button 
             onClick={onOpenCommandPalette}
             className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
-            title="Command Palette (⌘K)"
           >
             <Search className="w-4 h-4" />
           </button>
-
           <button 
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2 rounded-lg bg-slate-100 text-slate-800 hover:bg-slate-200 transition-colors"
-            aria-label="Toggle menu"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -75,7 +73,7 @@ export default function Sidebar({
         />
       )}
 
-      {/* Sidebar Content (Desktop Sticky + Mobile Off-Canvas Drawer) */}
+      {/* Sidebar Content */}
       <aside className={`
         fixed md:sticky top-0 left-0 bottom-0 z-50
         w-64 bg-white border-r border-slate-200 flex flex-col justify-between p-4 flex-shrink-0 h-screen
@@ -129,22 +127,49 @@ export default function Sidebar({
                 <LayoutDashboard className="w-4 h-4" />
                 <span>Dashboard</span>
               </div>
-              {activeTab !== 'dashboard' && <span className="text-[10px] font-mono text-slate-400">⌘1</span>}
             </button>
 
             <button
-              onClick={() => handleNavClick('focus')}
+              onClick={() => handleNavClick('planner')}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'focus'
+                activeTab === 'planner'
                   ? 'bg-slate-900 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
               }`}
             >
               <div className="flex items-center space-x-3">
-                <Target className="w-4 h-4 text-indigo-500" />
-                <span>Focus Workspace</span>
+                <Clock className="w-4 h-4 text-indigo-500" />
+                <span>Calendar & Allocator</span>
               </div>
-              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600 rounded-md">NEW</span>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('ai-copilot')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'ai-copilot'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <Bot className="w-4 h-4 text-indigo-500" />
+                <span>AI Copilot</span>
+              </div>
+              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600 rounded-md">GROQ</span>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('rules')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'rules'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <Tag className="w-4 h-4" />
+                <span>Keyword Rules</span>
+              </div>
             </button>
 
             <button
@@ -159,7 +184,6 @@ export default function Sidebar({
                 <BarChart3 className="w-4 h-4" />
                 <span>Analytics & Deep Dive</span>
               </div>
-              {activeTab !== 'analytics' && <span className="text-[10px] font-mono text-slate-400">⌘3</span>}
             </button>
 
             <button
@@ -171,17 +195,15 @@ export default function Sidebar({
               }`}
             >
               <div className="flex items-center space-x-3">
-                <Calendar className="w-4 h-4" />
+                <CalendarIcon className="w-4 h-4" />
                 <span>Daily Agenda</span>
               </div>
-              {activeTab !== 'events' && <span className="text-[10px] font-mono text-slate-400">⌘4</span>}
             </button>
           </nav>
         </div>
 
         {/* Footer Settings & Account */}
         <div className="space-y-3 pt-4 border-t border-slate-100">
-          {/* Sync Mode Toggle */}
           <button
             onClick={() => setMode(mode === 'demo' ? 'live' : 'demo')}
             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
@@ -197,12 +219,10 @@ export default function Sidebar({
             <span className="w-2 h-2 rounded-full bg-current animate-pulse"></span>
           </button>
 
-          {/* Utility Buttons */}
           <div className="flex items-center space-x-2">
             <button 
               onClick={() => { onOpenGuide(); setMobileOpen(false); }}
               className="flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/70 rounded-lg text-xs font-semibold transition-colors"
-              title="OAuth Setup Guide"
             >
               <HelpCircle className="w-3.5 h-3.5" />
               <span>Guide</span>
@@ -210,14 +230,12 @@ export default function Sidebar({
             <button 
               onClick={() => { onOpenSettings(); setMobileOpen(false); }}
               className="flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/70 rounded-lg text-xs font-semibold transition-colors"
-              title="Settings"
             >
               <Settings className="w-3.5 h-3.5" />
               <span>Settings</span>
             </button>
           </div>
 
-          {/* Account Profile */}
           <div>
             {isAuthenticated ? (
               <div className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200/70 rounded-xl">
@@ -232,7 +250,6 @@ export default function Sidebar({
                 <button 
                   onClick={onGoogleSignOut}
                   className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
-                  title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>

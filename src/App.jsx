@@ -4,9 +4,10 @@ import DashboardOverview from './components/DashboardOverview';
 import AnalyticsCharts from './components/AnalyticsCharts';
 import RecentActivityList from './components/RecentActivityList';
 import EventsList from './components/EventsList';
-import FocusPage from './components/FocusPage';
+import TimeslotPlannerPage from './components/TimeslotPlannerPage';
+import AICopilotPage from './components/AICopilotPage';
+import RulesPage from './components/RulesPage';
 import AnalyticsPage from './components/AnalyticsPage';
-import AICopilotModal from './components/AICopilotModal';
 import CommandPaletteModal from './components/CommandPaletteModal';
 import RuleManagerModal from './components/RuleManagerModal';
 import ManualEntryModal from './components/ManualEntryModal';
@@ -25,28 +26,34 @@ import {
 } from './services/googleCalendar';
 
 export default function App() {
-  // Navigation Pages: 'dashboard', 'focus', 'analytics', 'events'
+  // Navigation Pages: 'dashboard', 'planner', 'ai-copilot', 'rules', 'analytics', 'events'
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    if (['dashboard', 'focus', 'analytics', 'events'].includes(hash)) {
+    if (['dashboard', 'planner', 'ai-copilot', 'rules', 'analytics', 'events'].includes(hash)) {
       return hash;
     }
     return 'dashboard';
   });
 
-  // Sync activeTab with URL Hash
   const changeTab = (tab) => {
     setActiveTab(tab);
     window.location.hash = tab;
   };
 
-  // Mode: 'demo' or 'live'
-  const [mode, setMode] = useState('demo');
+  // Auth & Token State
+  const [accessToken, setAccessToken] = useState(() => {
+    return localStorage.getItem('timetrack_access_token') || null;
+  });
+
+  // Mode: Automatically default to 'live' if access token exists, else 'demo'
+  const [mode, setMode] = useState(() => {
+    return localStorage.getItem('timetrack_access_token') ? 'live' : 'demo';
+  });
   
-  // Date Range Filter: 'today', '7days', '14days', '30days'
+  // Date Range Filter: 'today', '3days', '7days', '14days', '30days'
   const [dateRange, setDateRange] = useState('14days');
 
-  // Initialize Groq AI key state from localStorage or prompt
+  // Initialize Groq AI key state
   const [groqKey, setGroqKey] = useState(() => localStorage.getItem('timetrack_groq_key') || '');
 
   // Client ID
@@ -54,10 +61,6 @@ export default function App() {
     return localStorage.getItem('timetrack_client_id') || DEFAULT_CLIENT_ID;
   });
 
-  // Auth State
-  const [accessToken, setAccessToken] = useState(() => {
-    return localStorage.getItem('timetrack_access_token') || null;
-  });
   const [userEmail, setUserEmail] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -90,7 +93,6 @@ export default function App() {
   });
 
   // Modals Visibility
-  const [showAICopilotModal, setShowAICopilotModal] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -145,18 +147,23 @@ export default function App() {
     localStorage.setItem('timetrack_google_events', JSON.stringify(googleEvents));
   }, [googleEvents]);
 
+  // Date Range Filtering (Today, 3 Days, 7 Days, 14 Days, 30 Days)
   const { startDate, endDate } = useMemo(() => {
     const end = new Date();
     const start = new Date();
 
     if (dateRange === 'today') {
       start.setHours(0, 0, 0, 0);
+    } else if (dateRange === '3days') {
+      start.setDate(start.getDate() - 3);
     } else if (dateRange === '7days') {
       start.setDate(start.getDate() - 7);
     } else if (dateRange === '14days') {
       start.setDate(start.getDate() - 14);
     } else if (dateRange === '30days') {
       start.setDate(start.getDate() - 30);
+    } else if (dateRange === '6months') {
+      start.setDate(start.getDate() - 180);
     }
     return { startDate: start, endDate: end };
   }, [dateRange]);
@@ -167,7 +174,7 @@ export default function App() {
     try {
       const fetchedEvents = await fetchGoogleCalendarEvents(token, startDate, endDate);
       setGoogleEvents(fetchedEvents);
-      setMode('live');
+      setMode('live'); // Automatically force live mode on successful fetch!
       showToast(`Synced ${fetchedEvents.length} Google Calendar events!`, 'success');
     } catch (err) {
       console.error(err);
@@ -177,12 +184,20 @@ export default function App() {
     }
   };
 
+  // Auto Fetch when token exists
+  useEffect(() => {
+    if (accessToken) {
+      handleFetchGoogleCalendar(accessToken);
+    }
+  }, [dateRange]);
+
   const handleGoogleSignIn = () => {
     requestGoogleAccessToken(
       clientId,
       (newToken) => {
         setAccessToken(newToken);
         localStorage.setItem('timetrack_access_token', newToken);
+        setMode('live'); // Automatically set to live mode!
         handleFetchGoogleCalendar(newToken);
       },
       (err) => {
@@ -365,13 +380,7 @@ export default function App() {
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={(tab) => {
-          if (tab === 'rules') {
-            setShowRulesModal(true);
-          } else {
-            changeTab(tab);
-          }
-        }}
+        setActiveTab={(tab) => changeTab(tab)}
         mode={mode}
         setMode={setMode}
         isAuthenticated={!!accessToken}
@@ -390,23 +399,16 @@ export default function App() {
           <div className="flex items-center space-x-3">
             <h1 className="text-base sm:text-lg font-bold text-slate-900 capitalize">
               {activeTab === 'dashboard' && 'Dashboard Overview'}
-              {activeTab === 'focus' && 'Focus Workspace & Pomodoro'}
+              {activeTab === 'planner' && 'Calendar & Timeslot Allocator'}
+              {activeTab === 'ai-copilot' && 'Groq AI Copilot Workspace'}
+              {activeTab === 'rules' && 'Keyword Categorization Rules'}
               {activeTab === 'analytics' && 'Analytics & Deep Dive'}
               {activeTab === 'events' && 'Daily Agenda Timeline'}
             </h1>
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-y-2">
-            {/* Groq AI Copilot Button */}
-            <button 
-              onClick={() => setShowAICopilotModal(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200/80 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
-            >
-              <Bot className="w-3.5 h-3.5 text-indigo-600" />
-              <span>AI Copilot</span>
-            </button>
-
-            {/* Command Palette Trigger Pill */}
+            {/* Command Palette Trigger */}
             <button 
               onClick={() => setShowCommandPalette(true)}
               className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 text-slate-600 rounded-xl text-xs font-semibold transition-colors"
@@ -416,7 +418,7 @@ export default function App() {
               <kbd className="font-mono text-[10px] bg-white border border-slate-200 px-1 py-0.5 rounded text-slate-400">⌘K</kbd>
             </button>
 
-            {/* Date Range Selector */}
+            {/* Date Range Selector with 3 Days option */}
             <div className="flex items-center space-x-1.5 border border-slate-200/80 bg-white px-2.5 py-1.5 rounded-xl text-xs font-semibold">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <select 
@@ -424,10 +426,12 @@ export default function App() {
                 onChange={(e) => setDateRange(e.target.value)}
                 className="bg-transparent border-none outline-none font-semibold text-slate-800 cursor-pointer"
               >
-                <option value="today">Today</option>
-                <option value="7days">Past 7 Days</option>
-                <option value="14days">Past 14 Days</option>
-                <option value="30days">Past 30 Days</option>
+                <option value="today">Today (24h)</option>
+                <option value="3days">Past 3 Days (72h)</option>
+                <option value="7days">Past 7 Days (168h)</option>
+                <option value="14days">Past 14 Days (336h)</option>
+                <option value="30days">Past 30 Days (720h)</option>
+                <option value="6months">Past 6 Months (4320h)</option>
               </select>
             </div>
 
@@ -460,10 +464,11 @@ export default function App() {
                 analytics={analytics} 
                 onAddTimeslot={handleAddManualEvent}
                 categories={categories}
+                dateRange={dateRange}
               />
               <AnalyticsCharts analytics={analytics} />
               
-              {/* GitHub-style Compact Activity Feed */}
+              {/* GitHub-style Activity Feed */}
               <RecentActivityList 
                 processedEvents={analytics.processedEvents}
                 categories={categories}
@@ -474,8 +479,26 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'focus' && (
-            <FocusPage onToast={showToast} />
+          {activeTab === 'planner' && (
+            <TimeslotPlannerPage
+              onAddTimeslot={handleAddManualEvent}
+              categories={categories}
+              processedEvents={analytics.processedEvents}
+            />
+          )}
+
+          {activeTab === 'ai-copilot' && (
+            <AICopilotPage analytics={analytics} />
+          )}
+
+          {activeTab === 'rules' && (
+            <RulesPage
+              rules={rules}
+              categories={categories}
+              onAddRule={handleAddRule}
+              onDeleteRule={handleDeleteRule}
+              onAddCategory={handleAddCategory}
+            />
           )}
 
           {activeTab === 'analytics' && (
@@ -493,12 +516,6 @@ export default function App() {
       </main>
 
       {/* Modals & Command Palette */}
-      <AICopilotModal
-        isOpen={showAICopilotModal}
-        onClose={() => setShowAICopilotModal(false)}
-        analytics={analytics}
-      />
-
       <CommandPaletteModal
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
@@ -507,18 +524,8 @@ export default function App() {
         onSyncGoogle={() => handleFetchGoogleCalendar()}
         onToggleMode={() => setMode(mode === 'demo' ? 'live' : 'demo')}
         mode={mode}
-        onOpenRules={() => setShowRulesModal(true)}
+        onOpenRules={() => changeTab('rules')}
         onOpenSettings={() => setShowSettingsModal(true)}
-      />
-
-      <RuleManagerModal
-        isOpen={showRulesModal}
-        onClose={() => setShowRulesModal(false)}
-        rules={rules}
-        categories={categories}
-        onAddRule={handleAddRule}
-        onDeleteRule={handleDeleteRule}
-        onAddCategory={handleAddCategory}
       />
 
       <ManualEntryModal
