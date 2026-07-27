@@ -1,19 +1,24 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-  }
+:root {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
 
-  body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #f8fafc;
-    color: #0f172a;
-    -webkit-font-smoothing: antialiased;
-    margin: 0;
-    padding: 0;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  background-color: #f8fafc;
+  color: #0f172a;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Custom Scrollbars */
@@ -32,11 +37,28 @@
   background: #94a3b8;
 }
 
-/* Ensure sticky sidebar works flawlessly */
-aside {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  flex-shrink: 0;
-  z-index: 40;
+/* Base Responsive Container Fixes */
+.recharts-responsive-container {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* Ensure no element causes unwanted horizontal scroll */
+img, svg, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fallback pure CSS responsive rules */
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column !important;
+  }
+  .main-workspace {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  .content-viewport {
+    padding: 12px !important;
+  }
 }

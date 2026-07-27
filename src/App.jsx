@@ -349,7 +349,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+    <div className="flex flex-col md:flex-row min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-900 font-sans">
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
@@ -372,9 +372,9 @@ export default function App() {
       />
 
       {/* Main Content Workspace */}
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-50">
+      <main className="flex-1 flex flex-col min-w-0 w-full bg-slate-50 overflow-x-hidden">
         {/* Top Control Bar */}
-        <header className="h-auto min-h-[4rem] px-4 md:px-8 py-3 bg-white border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30">
+        <header className="h-auto min-h-[3.5rem] px-4 md:px-8 py-3 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30 w-full">
           <div className="flex items-center space-x-3">
             <h1 className="text-base sm:text-lg font-bold text-slate-900 capitalize">
               {activeTab === 'dashboard' && 'Dashboard Overview'}
