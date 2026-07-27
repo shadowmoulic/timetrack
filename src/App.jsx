@@ -26,7 +26,19 @@ import {
 
 export default function App() {
   // Navigation Pages: 'dashboard', 'focus', 'analytics', 'events'
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (['dashboard', 'focus', 'analytics', 'events'].includes(hash)) {
+      return hash;
+    }
+    return 'dashboard';
+  });
+
+  // Sync activeTab with URL Hash
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    window.location.hash = tab;
+  };
 
   // Mode: 'demo' or 'live'
   const [mode, setMode] = useState('demo');
@@ -349,7 +361,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-900 font-sans">
+    <div className="flex flex-col md:flex-row min-h-screen w-full items-start bg-slate-50 text-slate-900 font-sans">
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
@@ -357,7 +369,7 @@ export default function App() {
           if (tab === 'rules') {
             setShowRulesModal(true);
           } else {
-            setActiveTab(tab);
+            changeTab(tab);
           }
         }}
         mode={mode}
@@ -444,7 +456,11 @@ export default function App() {
         <div className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto flex-1">
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
-              <DashboardOverview analytics={analytics} />
+              <DashboardOverview 
+                analytics={analytics} 
+                onAddTimeslot={handleAddManualEvent}
+                categories={categories}
+              />
               <AnalyticsCharts analytics={analytics} />
               
               {/* GitHub-style Compact Activity Feed */}
@@ -477,10 +493,16 @@ export default function App() {
       </main>
 
       {/* Modals & Command Palette */}
+      <AICopilotModal
+        isOpen={showAICopilotModal}
+        onClose={() => setShowAICopilotModal(false)}
+        analytics={analytics}
+      />
+
       <CommandPaletteModal
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
-        onNavigate={(tab) => setActiveTab(tab)}
+        onNavigate={(tab) => changeTab(tab)}
         onOpenManual={() => setShowManualModal(true)}
         onSyncGoogle={() => handleFetchGoogleCalendar()}
         onToggleMode={() => setMode(mode === 'demo' ? 'live' : 'demo')}

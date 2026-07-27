@@ -1,7 +1,9 @@
 import React from 'react';
 import { Award, Zap, AlertCircle, Clock, PieChart, TrendingUp, Sparkles } from 'lucide-react';
+import ScratchpadWidget from './ScratchpadWidget';
+import QuickTimeslotWidget from './QuickTimeslotWidget';
 
-export default function DashboardOverview({ analytics }) {
+export default function DashboardOverview({ analytics, onAddTimeslot, categories }) {
   const {
     totalHours = 0,
     productiveHours = 0,
@@ -90,7 +92,13 @@ export default function DashboardOverview({ analytics }) {
 
       </div>
 
-      {/* Row 2: 4 Metric Cards Grid */}
+      {/* Row 2: Quick Timeslot Planner & Sticky Notes Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <QuickTimeslotWidget onAddTimeslot={onAddTimeslot} categories={categories} />
+        <ScratchpadWidget />
+      </div>
+
+      {/* Row 3: 4 Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-slate-400">
