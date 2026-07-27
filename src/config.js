@@ -1,7 +1,7 @@
 // Default configuration for TimeTrack
 export const DEFAULT_CLIENT_ID = "335758397056-jquomn9ed970v0emsugrkp7a1jljg3f0.apps.googleusercontent.com";
 
-export const CALENDAR_SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
+export const CALENDAR_SCOPES = "https://www.googleapis.com/auth/calendar.events";
 
 export const DEFAULT_CATEGORIES = [
   { id: "deep-work", name: "Deep Work / Dev", type: "productive", color: "#6366f1", bg: "rgba(99, 102, 241, 0.15)" },

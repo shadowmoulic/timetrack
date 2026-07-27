@@ -6,17 +6,23 @@ import RecentActivityList from './components/RecentActivityList';
 import EventsList from './components/EventsList';
 import FocusPage from './components/FocusPage';
 import AnalyticsPage from './components/AnalyticsPage';
+import AICopilotModal from './components/AICopilotModal';
 import CommandPaletteModal from './components/CommandPaletteModal';
 import RuleManagerModal from './components/RuleManagerModal';
 import ManualEntryModal from './components/ManualEntryModal';
 import SetupGuideModal from './components/SetupGuideModal';
 import SettingsModal from './components/SettingsModal';
 
-import { Calendar, Plus, RefreshCw, Sparkles, Command } from 'lucide-react';
+import { Calendar, Plus, RefreshCw, Sparkles, Command, Bot } from 'lucide-react';
 import { DEFAULT_CLIENT_ID, DEFAULT_CATEGORIES, DEFAULT_RULES } from './config';
 import { generateMockEvents } from './services/mockData';
 import { calculateAnalytics } from './services/categorizer';
-import { requestGoogleAccessToken, fetchGoogleCalendarEvents } from './services/googleCalendar';
+import { 
+  requestGoogleAccessToken, 
+  fetchGoogleCalendarEvents,
+  createGoogleCalendarEvent,
+  deleteGoogleCalendarEvent 
+} from './services/googleCalendar';
 
 export default function App() {
   // Navigation Pages: 'dashboard', 'focus', 'analytics', 'events'
@@ -27,6 +33,9 @@ export default function App() {
   
   // Date Range Filter: 'today', '7days', '14days', '30days'
   const [dateRange, setDateRange] = useState('14days');
+
+  // Initialize Groq AI key state from localStorage or prompt
+  const [groqKey, setGroqKey] = useState(() => localStorage.getItem('timetrack_groq_key') || '');
 
   // Client ID
   const [clientId, setClientId] = useState(() => {
@@ -69,6 +78,7 @@ export default function App() {
   });
 
   // Modals Visibility
+  const [showAICopilotModal, setShowAICopilotModal] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -197,22 +207,61 @@ export default function App() {
     return calculateAnalytics(activeRawEvents, rules, categories, categoryOverrides);
   }, [activeRawEvents, rules, categories, categoryOverrides]);
 
-  // Event Quick Actions
-  const handleDuplicateEvent = (evt) => {
+  // Event Quick Actions (2-Way Google Calendar Sync)
+  const handleDuplicateEvent = async (evt) => {
     const duplicated = {
       ...evt,
       id: `manual-dup-${Date.now()}`,
       summary: `${evt.summary} (Copy)`,
       source: 'manual'
     };
+
+    if (accessToken && mode === 'live') {
+      try {
+        const createdGEvent = await createGoogleCalendarEvent(accessToken, duplicated);
+        setGoogleEvents(prev => [createdGEvent, ...prev]);
+        showToast(`Duplicated "${evt.summary}" on Google Calendar!`, 'success');
+        return;
+      } catch (err) {
+        showToast(`Local copy created (Google Sync error: ${err.message})`, 'info');
+      }
+    }
+
     setManualEvents(prev => [duplicated, ...prev]);
     showToast(`Duplicated "${evt.summary}"`, 'success');
   };
 
-  const handleDeleteEvent = (evtId) => {
+  const handleDeleteEvent = async (evtId) => {
+    if (accessToken && mode === 'live' && !evtId.startsWith('manual-')) {
+      try {
+        await deleteGoogleCalendarEvent(accessToken, evtId);
+        setGoogleEvents(prev => prev.filter(e => e.id !== evtId));
+        showToast('Deleted event from Google Calendar!', 'info');
+        return;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     setManualEvents(prev => prev.filter(e => e.id !== evtId));
     setGoogleEvents(prev => prev.filter(e => e.id !== evtId));
     showToast('Event removed.', 'info');
+  };
+
+  const handleAddManualEvent = async (eventData) => {
+    if (accessToken && mode === 'live') {
+      try {
+        const createdGEvent = await createGoogleCalendarEvent(accessToken, eventData);
+        setGoogleEvents(prev => [createdGEvent, ...prev]);
+        showToast('Created event directly on your Google Calendar!', 'success');
+        return;
+      } catch (err) {
+        showToast(`Added locally (Google sync: ${err.message})`, 'info');
+      }
+    }
+
+    setManualEvents(prev => [eventData, ...prev]);
+    showToast('Manual time entry added!', 'success');
   };
 
   const handleAddRule = (newRule) => {
@@ -236,11 +285,6 @@ export default function App() {
       [eventId]: categoryId
     }));
     showToast('Event category updated.', 'success');
-  };
-
-  const handleAddManualEvent = (eventData) => {
-    setManualEvents(prev => [eventData, ...prev]);
-    showToast('Manual time entry added!', 'success');
   };
 
   const handleImportCSV = (csvContent) => {
@@ -330,9 +374,9 @@ export default function App() {
       {/* Main Content Workspace */}
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50">
         {/* Top Control Bar */}
-        <header className="h-16 px-8 bg-white border-b border-slate-200/80 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-auto min-h-[4rem] px-4 md:px-8 py-3 bg-white border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30">
           <div className="flex items-center space-x-3">
-            <h1 className="text-lg font-bold text-slate-900 capitalize">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 capitalize">
               {activeTab === 'dashboard' && 'Dashboard Overview'}
               {activeTab === 'focus' && 'Focus Workspace & Pomodoro'}
               {activeTab === 'analytics' && 'Analytics & Deep Dive'}
@@ -340,7 +384,16 @@ export default function App() {
             </h1>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-y-2">
+            {/* Groq AI Copilot Button */}
+            <button 
+              onClick={() => setShowAICopilotModal(true)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200/80 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
+            >
+              <Bot className="w-3.5 h-3.5 text-indigo-600" />
+              <span>AI Copilot</span>
+            </button>
+
             {/* Command Palette Trigger Pill */}
             <button 
               onClick={() => setShowCommandPalette(true)}
@@ -352,7 +405,7 @@ export default function App() {
             </button>
 
             {/* Date Range Selector */}
-            <div className="flex items-center space-x-2 border border-slate-200/80 bg-white px-3 py-1.5 rounded-xl text-xs font-semibold">
+            <div className="flex items-center space-x-1.5 border border-slate-200/80 bg-white px-2.5 py-1.5 rounded-xl text-xs font-semibold">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <select 
                 value={dateRange} 
@@ -379,7 +432,7 @@ export default function App() {
             {/* Add Log Button */}
             <button 
               onClick={() => setShowManualModal(true)}
-              className="flex items-center space-x-1.5 px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-all shadow-sm"
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-all shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Entry</span>
@@ -388,7 +441,7 @@ export default function App() {
         </header>
 
         {/* View Content Area */}
-        <div className="p-8 max-w-7xl w-full mx-auto flex-1">
+        <div className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto flex-1">
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
               <DashboardOverview analytics={analytics} />

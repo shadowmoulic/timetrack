@@ -49,8 +49,6 @@ export function requestGoogleAccessToken(clientId, onTokenReceived, onError) {
       return;
     }
   }
-  
-  // Prompt user for Google OAuth consent
   tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
@@ -103,4 +101,85 @@ export function fetchGoogleCalendarEvents(accessToken, startDate, endDate) {
       reject(err);
     });
   });
+}
+
+/**
+ * Create a new event on Google Calendar (2-Way Sync)
+ */
+export async function createGoogleCalendarEvent(accessToken, eventData) {
+  const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+  
+  const body = {
+    summary: eventData.summary,
+    description: eventData.description || '',
+    start: eventData.start,
+    end: eventData.end
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `Failed to create event on Google Calendar (${res.status})`);
+  }
+
+  return await res.json();
+}
+
+/**
+ * Update an existing event on Google Calendar
+ */
+export async function updateGoogleCalendarEvent(accessToken, eventId, eventData) {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`;
+
+  const body = {
+    summary: eventData.summary,
+    description: eventData.description || '',
+    start: eventData.start,
+    end: eventData.end
+  };
+
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `Failed to update Google Calendar event (${res.status})`);
+  }
+
+  return await res.json();
+}
+
+/**
+ * Delete an event from Google Calendar
+ */
+export async function deleteGoogleCalendarEvent(accessToken, eventId) {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`;
+
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+
+  if (!res.ok && res.status !== 410) { // 410 means already deleted
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `Failed to delete Google Calendar event (${res.status})`);
+  }
+
+  return true;
 }
