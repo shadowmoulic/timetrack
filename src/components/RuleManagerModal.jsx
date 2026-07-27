@@ -4,8 +4,8 @@ import { X, Plus, Trash2, Tag, Layers } from 'lucide-react';
 export default function RuleManagerModal({
   isOpen,
   onClose,
-  rules,
-  categories,
+  rules = [],
+  categories = [],
   onAddRule,
   onDeleteRule,
   onAddCategory
@@ -51,37 +51,50 @@ export default function RuleManagerModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Tag size={20} className="text-secondary" />
-            Keyword Categorization Rules
-          </h3>
-          <button className="btn-icon-only" onClick={onClose}>
-            <X size={18} />
+    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
+      <div 
+        className="w-full max-w-xl bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
+              <Tag className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Keyword Categorization Rules</h3>
+              <p className="text-xs text-slate-400 font-medium">Auto-tag calendar events based on title keywords</p>
+            </div>
+          </div>
+
+          <button 
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="modal-body">
+        <div className="p-6 space-y-6">
           {/* Add Rule Form */}
-          <form onSubmit={handleCreateRule} className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-            <span className="form-label">Add New Keyword Rule</span>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <form onSubmit={handleCreateRule} className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+              Add New Keyword Rule
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 placeholder="e.g. github, coding, gym, netflix"
                 value={newKeyword}
                 onChange={(e) => setNewKeyword(e.target.value)}
-                className="form-input"
-                style={{ flex: 1, minWidth: '160px' }}
+                className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-medium placeholder-slate-400 outline-none focus:border-indigo-500 transition-all"
                 required
               />
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="form-select"
-                style={{ width: '180px' }}
+                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500 transition-all"
               >
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>
@@ -89,46 +102,48 @@ export default function RuleManagerModal({
                   </option>
                 ))}
               </select>
-              <button type="submit" className="btn btn-primary">
-                <Plus size={16} /> Add
+              <button 
+                type="submit" 
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center space-x-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add</span>
               </button>
             </div>
           </form>
 
-          {/* Categories Toggle */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0 10px' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
+          {/* Rules Header & New Category Toggle */}
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
               Active Rules ({rules.length})
             </span>
             <button 
               type="button"
-              className="btn btn-secondary"
               onClick={() => setShowAddCategoryForm(!showAddCategoryForm)}
-              style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+              className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5"
             >
-              <Layers size={14} /> + New Category
+              <Layers className="w-3.5 h-3.5 text-slate-500" />
+              <span>+ New Category</span>
             </button>
           </div>
 
           {/* New Category Form */}
           {showAddCategoryForm && (
-            <form onSubmit={handleCreateCategory} className="form-group" style={{ background: 'rgba(99, 102, 241, 0.08)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(99, 102, 241, 0.2)', marginBottom: '16px' }}>
-              <span className="form-label">Create Custom Category</span>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+            <form onSubmit={handleCreateCategory} className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl space-y-3">
+              <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider block">Create Custom Category</span>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   placeholder="Category Name (e.g. Side Hustle)"
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1 }}
+                  className="flex-1 bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-medium outline-none focus:border-indigo-600 transition-all"
                   required
                 />
                 <select
                   value={newCatType}
                   onChange={(e) => setNewCatType(e.target.value)}
-                  className="form-select"
-                  style={{ width: '140px' }}
+                  className="bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 transition-all"
                 >
                   <option value="productive">Productive (+1)</option>
                   <option value="neutral">Neutral (0)</option>
@@ -138,45 +153,37 @@ export default function RuleManagerModal({
                   type="color"
                   value={newCatColor}
                   onChange={(e) => setNewCatColor(e.target.value)}
-                  style={{ width: '44px', height: '38px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'transparent' }}
+                  className="w-10 h-9 rounded-xl border border-indigo-200 bg-white p-1 cursor-pointer"
                 />
               </div>
-              <button type="submit" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '6px 14px' }}>
+              <button 
+                type="submit" 
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+              >
                 Save Category
               </button>
             </form>
           )}
 
-          {/* Rules List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+          {/* Active Rules List */}
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
             {rules.map(rule => {
               const cat = categories.find(c => c.id === rule.categoryId) || categories[0];
               return (
                 <div 
                   key={rule.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'rgba(13, 18, 30, 0.7)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '8px 14px'
-                  }}
+                  className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-slate-300 transition-all"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', color: 'var(--accent-cyan)' }}>
+                  <div className="flex items-center space-x-3">
+                    <span className="font-mono text-xs font-bold text-slate-900">
                       "{rule.keyword}"
                     </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>→</span>
+                    <span className="text-slate-300 text-xs">→</span>
                     <span 
+                      className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider"
                       style={{
-                        background: cat?.bg || 'rgba(255,255,255,0.1)',
-                        color: cat?.color || '#fff',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.78rem',
-                        fontWeight: '700'
+                        backgroundColor: `${cat?.color || '#4f46e5'}15`,
+                        color: cat?.color || '#4f46e5'
                       }}
                     >
                       {cat?.name || 'General'}
@@ -184,12 +191,11 @@ export default function RuleManagerModal({
                   </div>
 
                   <button 
-                    className="btn-icon-only" 
                     onClick={() => onDeleteRule(rule.id)}
-                    style={{ color: '#ef4444', padding: '6px' }}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                     title="Delete rule"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               );

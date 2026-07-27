@@ -11,15 +11,19 @@ export default function SettingsModal({
   onToast
 }) {
   const [inputClientId, setInputClientId] = useState(clientId || DEFAULT_CLIENT_ID);
+  const [groqKeyInput, setGroqKeyInput] = useState(() => localStorage.getItem('timetrack_groq_key') || '');
 
   if (!isOpen) return null;
 
   const handleSave = (e) => {
     e.preventDefault();
-    if (!inputClientId.trim()) return;
-
-    onSaveClientId(inputClientId.trim());
-    if (onToast) onToast('Google Client ID updated!', 'success');
+    if (inputClientId.trim()) {
+      onSaveClientId(inputClientId.trim());
+    }
+    if (groqKeyInput.trim()) {
+      localStorage.setItem('timetrack_groq_key', groqKeyInput.trim());
+    }
+    if (onToast) onToast('Settings saved successfully!', 'success');
     onClose();
   };
 
@@ -27,59 +31,95 @@ export default function SettingsModal({
     if (window.confirm("Are you sure you want to reset all rules and restore default settings?")) {
       onResetDefaults();
       setInputClientId(DEFAULT_CLIENT_ID);
-      if (onToast) onToast('Reset to default rules & configuration.', 'info');
+      if (onToast) onToast('Reset to default configuration.', 'info');
       onClose();
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Settings size={20} className="text-secondary" />
-            Application Settings
-          </h3>
-          <button className="btn-icon-only" onClick={onClose}>
-            <X size={18} />
+    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
+      <div 
+        className="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
+              <Settings className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Application Settings</h3>
+              <p className="text-xs text-slate-400 font-medium">Manage API credentials & configuration</p>
+            </div>
+          </div>
+
+          <button 
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="modal-body">
-          <form onSubmit={handleSave}>
-            <div className="form-group">
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Key size={14} className="text-secondary" /> Google OAuth 2.0 Client ID
+        <div className="p-6 space-y-4">
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-slate-400" />
+                <span>Google OAuth Client ID</span>
               </label>
               <input
                 type="text"
                 value={inputClientId}
                 onChange={(e) => setInputClientId(e.target.value)}
-                className="form-input"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:bg-white focus:border-indigo-500 transition-all"
                 placeholder="xxxxxx.apps.googleusercontent.com"
                 required
               />
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '6px', display: 'block' }}>
-                Default pre-configured Client ID provided for instant OAuth testing.
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Groq AI API Key</span>
+              </label>
+              <input
+                type="password"
+                value={groqKeyInput}
+                onChange={(e) => setGroqKeyInput(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:bg-white focus:border-indigo-500 transition-all font-mono"
+                placeholder="gsk_..."
+              />
+              <span className="text-[11px] text-slate-400 font-medium block">
+                Used to power the AI Productivity Copilot.
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
               <button 
                 type="button" 
-                className="btn btn-secondary" 
                 onClick={handleReset}
-                style={{ color: '#ef4444' }}
+                className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1.5"
               >
-                <RotateCcw size={16} /> Reset All Defaults
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Defaults</span>
               </button>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="button" className="btn btn-secondary" onClick={onClose}>
+              <div className="flex items-center space-x-2">
+                <button 
+                  type="button" 
+                  onClick={onClose}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  <Save size={16} /> Save Changes
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Changes</span>
                 </button>
               </div>
             </div>
